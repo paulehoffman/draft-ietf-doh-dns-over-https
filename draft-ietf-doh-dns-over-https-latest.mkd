@@ -43,6 +43,7 @@ informative:
   I-D.ietf-dnsop-dns-wireformat-http:
   RFC6147:
   RFC6891:
+  RFC6950:
   CORS:
     title: "Cross-Origin Resource Sharing"
     author:
@@ -366,6 +367,26 @@ overhead. A competitive HTTP transport needs to support
 reordering, priority, parallelism, and header compression, all of which
 are supported by HTTP/2 {{RFC7540}} or its
 successors.
+
+# Operational Considerations {#opcons}
+
+Because DOH uses an encrypted channel that may extend beyond an
+administrative boundary, several operational issues may arise.  We
+discuss these below, and provide at least one possible mitigation for
+each issue (there may be others).
+
+ *  When used, split-horizon DNS provides different answers based on
+    the source of a query {{RFC6950}}.  The common case of this is an
+    enterprise that does not expose the existence of internal services
+    to the outside world.  A DOH server residing on the Internet may,
+    therefore, respond with an answer that is inappropriate for
+    internal hosts.  To address the common case, a DOH client MAY
+    contain some configuration, such as a list of local domains that
+    should use UDP- or DPRIVE-based queries.
+
+ *  Many deployments review DNS queries and responses on the wire to
+    detect for malware or other policy concerns.  Where such exposure
+    is required by policy, DOH the user may wish to not configure DOH.
 
 # IANA Considerations {#iana}
 
