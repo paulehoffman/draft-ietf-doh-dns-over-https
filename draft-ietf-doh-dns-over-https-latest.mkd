@@ -213,7 +213,7 @@ application/dns-udpwireformat type (e.g. ct&body=...).
 The DNS API Client SHOULD include an HTTP "Accept:" request header to
 say what type of content can be understood in response.
 There is no mandatory-to-implement format that clients need to understand,
-bu for maximum interoperability, the client
+but for maximum interoperability, the client
 SHOULD be prepared to process "application/dns-udpwireformat" {{dnswire}}
 responses and MAY process any other type it receives.
 
