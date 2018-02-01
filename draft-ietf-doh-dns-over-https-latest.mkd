@@ -187,9 +187,8 @@ The URI scheme MUST be https.
 
 A client can be configured with a DNS API URI, or it can discover the
 URI.  This document defines a well-known URI path of
-"/.well-known/dns-query" so that a discovery process that produces a
-domain name or domain name and port can be used to construct the DNS
-API URI.  (See {{iana}} for the registration of this in the well-known
+"/.well-known/dns-query" for easy identification of the protocol in server configuration.
+(See {{iana}} for the registration of this in the well-known
 URI registry.)  DNS API servers SHOULD use this well-known path to
 help contextualize DNS Query requests that use server push
 {{!RFC7540}}.
