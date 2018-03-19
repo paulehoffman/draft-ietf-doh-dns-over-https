@@ -125,12 +125,6 @@ The protocol described here bases its design on the following protocol requireme
 * The protocol must allow implementations to use HTTP's content
   negotiation mechanism.
 
-* The protocol must ensure interoperable media formats through a
-  mandatory to implement format wherein a query must be able to
-  contain future modifications to the DNS protocol including the
-  inclusion of one or more EDNS extensions (including those not yet
-  defined).
-
 * The protocol must use a secure transport that meets the
   requirements for HTTPS.
 
@@ -175,9 +169,11 @@ the dns parameter uses base64url encoding.
 Using the GET method is friendlier to many HTTP cache implementations.
 
 The DNS API Client SHOULD include an HTTP "Accept:" request header to
-say what type of content can be understood in response. The client
-MUST be prepared to process "application/dns-udpwireformat" {{dnswire}}
-responses but MAY process any other type it receives.
+say what type of content can be understood in response.
+There is no mandatory-to-implement format that clients need to understand,
+but for maximum interoperability, the client
+SHOULD be prepared to process "application/dns-udpwireformat" {{dnswire}}
+responses and MAY process any other type it receives.
 
 In order to maximize cache friendliness, DNS API clients using media
 formats that include DNS ID, such as application/dns-udpwireformat,
