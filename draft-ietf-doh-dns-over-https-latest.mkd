@@ -563,7 +563,9 @@ address. Alternative strategies a client might employ include making
 the initial resolution part of the configuration, IP based URIs and
 corresponding IP based certificates for HTTPS, or resolving the DNS
 API server's hostname via traditional DNS or another DOH server while
-still authenticating the resulting connection via HTTPS.
+still authenticating the resulting connection via HTTPS. It is 
+recommended that IP addresses of DOH servers be static so that 
+these IP addresses could be hardcoded into client configurations.
 
 HTTP {{RFC7230}} is a stateless application level protocol and
 therefore DOH implementations do not provide stateful ordering
