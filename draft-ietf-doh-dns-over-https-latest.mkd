@@ -68,10 +68,11 @@ https:// URIs.
 
 # Introduction
 
-This document defines a specific protocol for sending DNS {{RFC1035}}
-queries and getting DNS responses over HTTP {{RFC7540}} using https://
-(and therefore TLS {{RFC5246}} security for integrity and
-confidentiality). Each DNS query-response pair is mapped into a HTTP
+This document defines a mechanism for sending DNS {{RFC1035}} queries and
+getting DNS responses over HTTP {{RFC7540}} using https:// (and therefore TLS
+{{RFC5246}} security for integrity and confidentiality), by interacting with a
+specified type of HTTP resource ({{resource}}) using the existing DNS wire
+format {{dnswire}}. Each DNS query-response pair is mapped into a HTTP
 request-response pair.
 
 The described approach is more than a tunnel over HTTP. It establishes
@@ -95,7 +96,7 @@ other uses for this work.
 
 # Terminology
 
-A server that supports this protocol is called a "DNS API server" to
+A HTTP resource that supports this protocol is called a "DNS API resource" to
 differentiate it from a "DNS server" (one that uses the regular DNS
 protocol).  Similarly, a client that supports this protocol is called a
 "DNS API client".
@@ -135,70 +136,70 @@ The protocol described here bases its design on the following protocol requireme
 
 * Supporting insecure HTTP
 
-# The HTTP Request
 
-A DNS API client encodes a single DNS query
-into an HTTP request using either the HTTP GET or POST method and the
-other requirements of this section. The DNS API server defines the URI
-used by the request through the use of a URI Template
-{{RFC6570}}. Configuration and discovery of the URI Template is done
-out of band from this protocol.
+# Locating DNS API Resources {#locate}
 
-The URI Template defined in this document is processed without any
-variables when the HTTP method is POST. When the HTTP method is
-GET the single variable "dns" is defined as the content of the request
-(as described in {{dnswire}}), encoded with base64url {{RFC4648}}.
+The URI of a DNS API Resource is found through the use of a URI Template
+{{RFC6570}}. Configuration and discovery of the URI Template is done out of
+band from this protocol.
 
-Future specifications for new media types MUST define the variables
-used for URI Template processing with this protocol.
+The URI Template is processed without any variables when the HTTP method is
+POST; the DNS request is conveyed in the POST request body, without encoding.
 
-DNS API servers MUST implement both the POST and GET methods.
+When the HTTP method is GET, the single template variable "dns" is defined as
+the content of the request (as described in {{dnswire}}), encoded with
+base64url {{RFC4648}}. Padding characters for base64url MUST NOT be included.
 
-When using the POST method the DNS query is included as the message
-body of the HTTP request and the Content-Type request header indicates
-the media type of the message. POST-ed requests are smaller than their
-GET equivalents.
+Future specifications for new media types MUST define the variables used for
+URI Template processing with this protocol.
 
-Using the GET method is friendlier to many HTTP cache implementations.
 
-The DNS API client SHOULD include an HTTP "Accept" request header to
-indicate what type of content can be understood in
-response. Irrespective of the value of the Accept request header, the
-client MUST be prepared to process "application/dns-udpwireformat"
-{{dnswire}} responses but MAY also process any other type it receives.
+# DNS API Resources {#resource}
 
-In order to maximize cache friendliness, DNS API clients using media
-formats that include DNS ID, such as application/dns-udpwireformat,
-SHOULD use a DNS ID of 0 in every DNS request.  HTTP correlates
-request and response, thus eliminating the need for the ID in a media
-type such as application/dns-udpwireformat and the use of a varying
-DNS ID can cause semantically equivalent DNS queries to be cached
-separately.
+DNS API resources accept both POST and GET requests, containing a single DNS
+request per HTTP request. Both methods MUST be implemented by DNS API resources.
 
-DNS API clients can use HTTP/2 padding and compression in the same way
-that other HTTP/2 clients use (or don't use) them.
+POST requests to a DNS API resource including the DNS query in their message
+bodies, with the Content-Type request header indicating their media type.
 
-## DNS Wire Format {#dnswire}
+GET requests to a DNS API resource encode the DNS query in the URL itself,
+after being encoded with base64url {{RFC4648}}.
 
-The data payload is the DNS on-the-wire format defined in {{RFC1035}}.
-The format is for DNS over UDP. Note that this is different than the
-wire format used in {{RFC7858}}.
-Also note that while {{RFC1035}} says "Messages carried by UDP are
-restricted to 512 bytes", that was later updated by {{RFC6891}},
-and this protocol allows DNS on-the-wire format payloads of any size.
+POST-ed requests are generally smaller than their GET equivalents (as the DNS
+query is not encoded), but using the GET method is friendlier to many HTTP
+cache implementations.
 
-When using the GET method, the data payload MUST be encoded with
-base64url {{RFC4648}} and then provided as a variable named
-"dns" to the URI Template expansion. Padding characters for
-base64url MUST NOT be included.
+A DNS API resource SHOULD respond with HTTP status code 415 (Unsupported Media
+Type) upon receiving a media type it is unable to process in a POST request.
 
-When using the POST method, the data payload MUST NOT be encoded and
-is used directly as the HTTP message body.
+DNS API resources will generate successful responses (i.e., a 2xx status code;
+see {{RFC7231}}, Section 6.3}}) to indicate a valid DNS response to the query
+made in the HTTP request. This includes both success and failure responses,
+from a DNS perspective.
 
-DNS API clients using the DNS wire format MAY have one or more EDNS
-options {{RFC6891}} in the request.
+For example, a DNS failure response such as SERVFAIL or NXDOMAIN will be sent
+in a successful 2xx HTTP response, even though there was a failure at the DNS
+layer.
 
-The media type is "application/dns-udpwireformat".
+Responses with non-successful HTTP status codes do not contain DNS answers to
+the question in the corresponding request. Some non-successful HTTP responses
+(e.g., redirects or authentication failures) could be used to help clients make
+new requests to satisfy the original question.
+
+DNS API resources can use the "Accept" request header field to select a
+response format, based upon the client's preferences and the formats it
+supports. All DNS API resources and DNS AP clients MUST support the
+"application/dns-udpwireformat" ({{dnswire}}).
+
+The media types that a DNS API resource responds with can provide varying
+amounts of information. For example, one response type might include the
+information from the DNS header bytes while another might omit it. The amount
+and type of information that a media type gives is solely up to the format, and
+not constrained by the DNS API resource.
+
+Note that the DNS response for "application/dns-udpwireformat" in {{dnswire}}
+can have one or more EDNS options, depending on the extension definition of the
+extensions given in the DNS request.
 
 ## Examples
 
@@ -265,77 +266,6 @@ accept = application/dns-udpwireformat
 
 ~~~~~
 
-# The HTTP Response
-
-An HTTP response with a 2xx status code ({{RFC7231}} Section 6.3)
-indicates a valid DNS response to the query made in the HTTP
-request. A valid DNS response includes both success and failure
-responses. For example, a DNS failure response such as SERVFAIL or
-NXDOMAIN will be the message in a successful 2xx HTTP response even
-though there was a failure at the DNS layer. Responses with
-non-successful HTTP status codes do not contain DNS answers to the
-question in the corresponding request. Some of these non-successful
-HTTP responses (e.g., redirects or authentication failures) could
-allow clients to make new requests to satisfy the original question.
-
-Different response media types will provide more or less information from a DNS
-response. For example, one response type might include the information from the
-DNS header bytes while another might omit it. The amount and type of information
-that a media type gives is solely up to the format, and not defined in
-this protocol.
-
-At the time this is published, the response types are works in
-progress. The only response type defined in this document is
-"application/dns-udpwireformat", but it is possible that other
-response formats will be defined in the future.
-
-The DNS response for "application/dns-udpwireformat" in {{dnswire}}
-MAY have one or more EDNS options, depending on the
-extension definition of the extensions given in the DNS request.
-
-Each DNS request-response pair is matched to one HTTP request-response
-pair. The responses may be processed and transported in any order
-using HTTP's multi-streaming functionality ({{RFC7540}} Section 5}).
-
-The Answer section of a DNS response can contain zero or more RRsets.
-(RRsets are defined in {{RFC7719}}.)  According to {{RFC2181}}, each
-resource record in an RRset has Time To Live (TTL)
-freshness information.  Different RRsets in the Answer section can
-have different TTLs, although it is only possible for the HTTP response
-to have a single freshness lifetime.  The HTTP response freshness lifetime
-({{RFC7234}} Section 4.2) should be coordinated with the RRset
-with the smallest TTL in the Answer section of the response.
-Specifically, the HTTP freshness lifetime SHOULD be set to expire at the same time
-any of the DNS resource records in the Answer section reach a 0 TTL.
-The response freshness lifetime
-MUST NOT be greater than that indicated by the DNS resoruce record with the
-smallest TTL in the response.
-
-If the DNS response has no records in the Answer section, and the DNS
-response has an SOA record in the Authority section, the response
-freshness lifetime MUST NOT be greater than the MINIMUM field from that SOA
-record.
-(See {{RFC2308}}.)
-Otherwise, the HTTP response MUST set a freshness lifetime
-({{RFC7234}} Section 4.2) of 0 by using a mechanism such as
-"Cache-Control: no-cache" ({{RFC7234}} Section 5.2.1.4).
-
-A DNS API client that receives a response without an explicit
-freshness lifetime MUST NOT assign that response a heuristic
-freshness ({{RFC7234}} Section 4.2.2.) greater than that indicated by
-the DNS Record with the smallest TTL in the response.
-
-A DNS API server MUST be able to process application/dns-udpwireformat
-request messages.
-
-A DNS API server SHOULD respond with HTTP status code 415 (Unsupported
-Media Type) upon receiving a media type it is unable to process.
-
-This document does not change the definition of any HTTP response codes or
-otherwise proscribe their use.
-
-## Example
-
 This is an example response for a query for the IN A records for
 "www.example.com" with recursion turned on. The response bears one
 record with an address of 192.0.2.1 and a TTL of 128 seconds.
@@ -353,15 +283,32 @@ cache-control = max-age=128
 6d 00 00 01 00 01 00 00  00 80 00 04 C0 00 02 01
 ~~~~~
 
-# HTTP Integration
+## The DNS Wire Format {#dnswire}
+
+The data payload is the DNS on-the-wire format defined in {{RFC1035}}. The
+format is for DNS over UDP. Note that this is different than the wire format
+used in {{RFC7858}}.
+
+Also note that while {{RFC1035}} says "Messages carried by UDP are restricted
+to 512 bytes", that was later updated by {{RFC6891}}, and this protocol allows
+DNS on-the-wire format payloads of any size.
+
+DNS API clients using the DNS wire format MAY have one or more EDNS
+options {{RFC6891}} in the request.
+
+The media type is "application/dns-udpwireformat".
+
+
+
+# HTTP Considerations
 
 This protocol MUST be used with the https scheme URI {{RFC7230}}.
 
-## Cache Interaction {#caching}
+## Interactions between HTTP and DNS Caching {#caching}
 
 A DNS API client may utilize a hierarchy of caches that include both
-HTTP and DNS specific caches. HTTP cache entries may be bypassed with
-HTTP mechanisms such as the "Cache-Control no-cache" directive; however
+HTTP and DNS specific caches. HTTP caches may be bypassed with
+HTTP mechanisms such as the "Cache-Control no-store" directive; however
 DNS caches do not have a similar mechanism.
 
 A DOH response that was previously stored in an HTTP cache will
@@ -381,22 +328,54 @@ large when compared to the overall DNS response size, and have a
 variable nature that creates constant pressure on the HTTP/2
 compression dictionary {{RFC7541}}. Other types of DNS data, such as
 zone transfers, may be larger and benefit more from revalidation. DNS
-API servers may wish to consider whether providing these validation
+API resources may wish to consider whether providing these validation
 enabling response headers is worthwhile.
 
-The stale-while-revalidate and stale-if-error cache control directives
-may be well suited to a DOH implementation when allowed by server
-policy. Those mechanisms allow a client, at the server's discretion,
-to reuse a cache entry that is no longer fresh under some extenuating
-circumstances defined in {{RFC5861}}.
+The stale-while-revalidate and stale-if-error cache control directives may be
+well suited to a DOH implementation when allowed by the DNS API resource's
+policy. Those mechanisms allow a cache, at the server's discretion, to reuse a
+response that is no longer fresh under some extenuating circumstances defined
+in {{RFC5861}}.
 
-All HTTP servers, including DNS API servers, need to consider cache
+All HTTP resources, including DNS API resources, need to consider cache
 interaction when they generate responses that are not globally
-valid. For instance, if a DNS API server customized a response based
+valid. For instance, if a DNS API resource customized a response based
 on the client's identity then it would not want to globally allow
 reuse of that response. This could be accomplished through a variety
-of HTTP techniques such as a Cache-Control max-age of 0, or perhaps by
-the Vary response header.
+of HTTP techniques such as a Cache-Control: no store, or by using
+the Vary response header; see {{RFC7234}}.
+
+In order to maximize cache friendliness, DNS requests that include DNS ID
+SHOULD use a DNS ID of 0. HTTP correlates requests and responses, thus
+eliminating the need for the ID, and the use of a varying DNS ID can cause
+semantically equivalent DNS queries to be cached separately.
+
+The Answer section of a DNS response can contain zero or more RRsets. (RRsets
+are defined in {{RFC7719}}.) According to {{RFC2181}}, each resource record in
+an RRset has Time To Live (TTL) freshness information. Different RRsets in the
+Answer section can have different TTLs, although it is only possible for the
+HTTP response to have a single freshness lifetime. The HTTP response freshness
+lifetime ({{RFC7234}} Section 4.2) should be coordinated with the RRset with
+the smallest TTL in the Answer section of the response.
+
+Specifically, the HTTP freshness lifetime SHOULD be set to expire at the same
+time any of the DNS resource records in the Answer section reach a 0 TTL. The
+response freshness lifetime MUST NOT be greater than that indicated by the DNS
+resource record with the smallest TTL in the response.
+
+If the DNS response has no records in the Answer section, and the DNS response
+has an SOA record in the Authority section, the response freshness lifetime
+MUST NOT be greater than the MINIMUM field from that SOA record. (See
+{{RFC2308}}.) 
+
+Otherwise, the HTTP response MUST set a freshness lifetime ({{RFC7234}} Section
+4.2) of 0 by using a mechanism such as "Cache-Control: no-cache" ({{RFC7234}}
+Section 5.2.1.4).
+
+A DNS API client that receives a response without an explicit freshness
+lifetime MUST NOT assign that response a heuristic freshness ({{RFC7234}}
+Section 4.2.2.) greater than that indicated by the DNS Record with the smallest
+TTL in the response.
 
 ## HTTP/2
 
@@ -410,22 +389,25 @@ HTTP/2 {{RFC7540}}. Earlier versions of HTTP are capable of conveying
 the semantic requirements of DOH but may result in very poor
 performance for many uses cases.
 
+DNS API clients can use HTTP/2 padding and compression in the same way that
+other HTTP/2 clients use (or don't use) them.
+
 ## Server Push
 
 Before using DOH response data for DNS resolution, the client MUST
-establish that the HTTP request URI is a trusted service for the DOH
-query. For HTTP requests initiated by the DNS API client this trust is
+establish that the HTTP request URI is a trusted service for DOH
+queries. For HTTP requests initiated by the DNS API client this trust is
 implicit in the selection of URI. For HTTP server push ({{RFC7540}}
 Section 8.2) extra care must be taken to ensure that the pushed URI is
 one that the client would have directed the same query to if the
 client had initiated the request. This specification does not extend
 DNS resolution privileges to URIs that are not recognized by the
-client as trusted DNS API servers.
+client as trusted DNS API resources.
 
 ## Content Negotiation
 
 In order to maximize interoperability, DNS API clients and DNS API
-servers MUST support the "application/dns-udpwireformat" media
+resources MUST support the "application/dns-udpwireformat" media
 type. Other media types MAY be used as defined by HTTP Content
 Negotiation ({{RFC7231}} Section 3.4).
 
@@ -497,10 +479,10 @@ HTTP/2 provides further advice about the use of compression
 (Section 10.6 of {{RFC7540}}) and padding (Section 10.7 of {{RFC7540}}).
 
 The HTTPS connection provides transport security for the interaction
-between the DNS API server and client, but does not inherently ensure
+between the DNS API resource and client, but does not inherently ensure
 the authenticity of DNS data. A DNS API client may also perform full
-DNSSEC validation of answers received from a DNS API server or it may
-choose to trust answers from a particular DNS API server, much as a
+DNSSEC validation of answers received from a DNS API resource or it may
+choose to trust answers from a particular DNS API resource, much as a
 DNS client might choose to trust answers from its recursive DNS
 resolver. This capability might be affected by the response media
 type.
@@ -511,16 +493,16 @@ can affect that client's view of the DNS. This is no different
 than the security implications of HTTP caching for other protocols
 that use HTTP.
 
-A server that is acting both as a normal web server and a DNS API
-server is in a position to choose which DNS names it forces a
+A HTTP server that is hosting both DNS API resources and "normal" web resources
+is in a position to choose which DNS names it forces a
 client to resolve (through its web service) and also be the one to
 answer those queries (through its DNS API service). An untrusted
-DNS API server can thus easily cause damage by poisoning a client's
-cache with names that the DNS API server chooses to poison. A
-client MUST NOT trust a DNS API server simply because it was
+DNS API resource can thus easily cause damage by poisoning a client's
+cache with names that the DNS API resource chooses to poison. A
+client MUST NOT trust a DNS API resource simply because it was
 discovered, or because the client was told to trust the DNS API
-server by an untrusted party. Instead, a client MUST only trust DNS
-API server that is configured as trustworthy.
+resource by an untrusted party. Instead, a client MUST only trust DNS
+API resource that is configured as trustworthy.
 
 A client can use DNS over HTTPS as one of multiple mechanisms to obtain DNS
 data. If a client of this protocol encounters an HTTP error after sending
@@ -539,19 +521,19 @@ For example, in the case of DNS64 {{RFC6147}}, the choice could affect
 whether IPv6/IPv4 translation will work at all.
 
 The HTTPS channel used by this specification establishes secure two
-party communication between the DNS API client and the DNS API server.
+party communication between the DNS API client and the DNS API resource.
 Filtering or inspection systems that rely on unsecured transport of
 DNS will not function in a DNS over HTTPS environment.
 
 Some HTTPS client implementations perform real time third party checks
 of the revocation status of the certificates being used by TLS. If
-this check is done as part of the DNS API server connection procedure
+this check is done as part of the DNS API resource connection procedure
 and the check itself requires DNS resolution to connect to the third
 party a deadlock can occur. The use of OCSP {{RFC6960}} servers or AIA
 for CRL fetching ({{RFC5280}} Section 4.2.2.1) are examples of how
 this deadlock can happen.  To mitigate the possibility of deadlock,
-DNS API servers SHOULD NOT rely on DNS based references to external
-resources in the TLS handshake. For OCSP the server can bundle the
+DNS API resources SHOULD NOT rely on DNS based references to external
+resources in the TLS handshake. For OCSP the resource can bundle the
 certificate status as part of the handshake using a mechanism
 appropriate to the version of TLS, such as using {{RFC6066}} Section 8
 for TLS version 1.2. AIA deadlocks can be avoided by providing
@@ -562,11 +544,11 @@ A DNS API client may face a similar bootstrapping problem when the
 HTTP request needs to resolve the hostname portion of the DNS
 URI. Just as the address of a traditional DNS nameserver cannot be
 originally determined from that same server, a DNS API client cannot use
-its DNS API server to initially resolve the server's host name into an
+its DNS API resource to initially resolve the server's host name into an
 address. Alternative strategies a client might employ include making
 the initial resolution part of the configuration, IP based URIs and
 corresponding IP based certificates for HTTPS, or resolving the DNS
-API server's hostname via traditional DNS or another DNS API server while
+API resource's hostname via traditional DNS or another DNS API resource while
 still authenticating the resulting connection via HTTPS.
 
 HTTP {{RFC7230}} is a stateless application level protocol and
@@ -574,11 +556,11 @@ therefore DOH implementations do not provide stateful ordering
 guarantees between different requests. DOH cannot be used as a
 transport for other protocols that require strict ordering.
 
-If a DNS API server responds to a DNS API client with a DNS message that has the
-TC (truncation) bit set in the header, that indicates that the DNS API server
-was not able to retrieve a full answer for the query and is providing
+If a DNS API resource responds to a DNS API client with a DNS message that has
+the TC (truncation) bit set in the header, that indicates that the DNS API
+resource was not able to retrieve a full answer for the query and is providing
 the best answer it could get. This protocol does not require that a DNS API
-server that cannot get an untruncated answer send back such an answer; it can
+resource that cannot get an untruncated answer send back such an answer; it can
 instead send back an HTTP error to indicate that it cannot give a useful answer.
 
 This protocol does not define any use for the "original_transport" optional
