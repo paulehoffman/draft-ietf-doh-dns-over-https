@@ -82,7 +82,7 @@ addition to this media type negotiation, it aligns itself with HTTP
 features such as caching, redirection, proxying, authentication, and
 compression.
 
-The integration with HTTP provides a transport suitable for both
+This integration with HTTP provides a resolution service suitable for both
 traditional DNS clients and native web applications seeking access to
 the DNS.
 
