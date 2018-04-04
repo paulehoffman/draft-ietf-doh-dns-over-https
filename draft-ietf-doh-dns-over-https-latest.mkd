@@ -75,7 +75,7 @@ confidentiality). Each DNS query-response pair is mapped into a HTTP
 request-response pair.
 
 The described approach is more than a tunnel over HTTP. It establishes
-default media formatting types for requests and responses but uses
+a default media type for DNS requests and responses, but uses
 normal HTTP content negotiation mechanisms for selecting alternatives
 that endpoints may prefer in anticipation of serving new use cases. In
 addition to this media type negotiation, it aligns itself with HTTP
