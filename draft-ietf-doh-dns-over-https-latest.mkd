@@ -519,8 +519,9 @@ A server that is acting both as a normal web server and a DNS API
 server is in a position to choose which DNS names it forces a client
 to resolve (through its web service) and also be the one to answer
 those queries (through its DNS API service).
-An untrusted DNS API server can thus easily cause damage by poisoning
-a client's cache with names that the DNS API server chooses to poison.
+Any DNS API server can thus easily cause damage by poisoning
+a client's cache with names that the DNS API server chooses to poison;
+thus, every DNS API server needs to be trusted.
 As stated in {{client_trust}}, a client 
 MUST only trust a DNS API server that is configured as trustworthy.
 
