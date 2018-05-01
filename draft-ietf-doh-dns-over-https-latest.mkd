@@ -396,7 +396,7 @@ untrusted party.
 This specification does not extend DNS resolution privileges 
 to URIs that are not recognized by the client as trusted DNS API servers. 
 As such, use of untrusted servers is out of scope of this document 
-(however Section 8 discusses some of the security risks of using them).
+(however {{Security}} discusses some of the security risks of using them).
 
 ## Server Push
 
