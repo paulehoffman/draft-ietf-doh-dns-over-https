@@ -520,11 +520,10 @@ can affect that client's view of the DNS. This is no different
 than the security implications of HTTP caching for other protocols
 that use HTTP.
 
-In the absence of information about the authenticity of responses, such as
-DNSSEC, a DNS API server can give a client invalid data in responses. A
-client MUST NOT authorize arbitrary DNS API servers.
-Instead, a client MUST specifically authorize DNS
-API servers using mechanisms such as explicit configuration.
+When DNSSEC is not used, a DNS API server can give the client invalid
+data as a response to a DNS query. Therefore, a DNS API client SHOULD
+carefully determine which DNS API server(s) it trusts. For example, a
+DNS API client can have trusted DNS API server(s) preconfigured.
 
 A client can use DNS over HTTPS as one of multiple mechanisms to obtain DNS
 data. If a client of this protocol encounters an HTTP error after sending
