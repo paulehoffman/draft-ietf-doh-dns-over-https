@@ -376,10 +376,9 @@ HTTP revalidation (e.g., via If-None-Match request headers) of cached
 DNS information may be of limited value to DOH as revalidation
 provides only a bandwidth benefit and DNS transactions are normally
 latency bound. Furthermore, the HTTP response headers that enable
-revalidation (such as "Last-Modified" and "Etag") are often fairly
-large when compared to the overall DNS response size, and have a
-variable nature that creates constant pressure on the HTTP/2
-compression dictionary {{RFC7541}}. Other types of DNS data, such as
+revalidation (such as "Last-Modified" and "Etag") can be
+large relative to the size of a typical DNS response.
+Other types of DNS data, such as
 zone transfers, may be larger and benefit more from revalidation. DNS
 API servers may wish to consider whether providing these validation
 enabling response headers is worthwhile.
