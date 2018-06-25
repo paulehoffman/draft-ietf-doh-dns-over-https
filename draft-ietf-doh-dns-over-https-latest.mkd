@@ -555,11 +555,7 @@ contains one or more common features that can be used to correlate
 queries to the same identity. DNS transports will generally
 carry the same privacy properties of the layers used to implement
 them. For example, the properties of IP, TCP, and TLS apply to DNS
-over TLS implementations.
-
-The privacy considerations of using the HTTPS layer in DoH are
-incremental to those of DNS over TLS. DoH is not known to introduce
-new concerns beyond those associated with HTTPS.
+over TLS implementations. 
 
 At the IP level, the client address provides obvious correlation
 information. This can be mitigated by use of a NAT, proxy, VPN, or
@@ -580,6 +576,22 @@ through the use of some form of session resumption mechanism such as
 session tickets {{RFC5077}}. Session resumption creates trivial
 mechanisms for a server to correlate TLS connections
 together.
+
+### DNS Specific considerations
+
+Whilst DNS transports will generally carry the same privacy properties of the
+layers used to implement them the standard DNS wireformat itself notably
+contains no client identifiers. Using HTTPS as a transport therefore introduces
+new privacy concerns over DNS over UDP, TCP or TLS (RFC7858) with regard to
+additional data that may be visible to a DoH server compared to a DNS resolver.
+
+### HTTP Specific considerations (#HTTPconsiderations)
+
+This section provides guidance but places only minor restrictions on HTTP
+features (specifically HTTP cookies) that may be used in DoH. The design
+rationale for this decision is that retaining the ability to leverage the full
+functionality of the HTTP ecosystem is more important than placing any
+constraints on this new protocol based on privacy considerations.
 
 HTTP's feature set can also be used for identification and tracking in
 a number of different ways. For example, authentication request header
