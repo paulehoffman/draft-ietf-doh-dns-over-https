@@ -136,7 +136,7 @@ verifies the DoH server's identity.
 
 A DoH client MUST NOT use a different URI simply because it was
 discovered outside of the client's configuration (such as through
-HTTP/2 push), or because a server offers an unsolicited response that
+HTTP/2 server push ({{RFC7540}}), or because a server offers an unsolicited response that
 appears to be a valid answer to a DNS query. This specification does
 not extend DNS resolution privileges to URIs that are not recognized
 by the DoH client as configured URIs. Such scenarios may create
