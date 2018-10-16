@@ -47,7 +47,7 @@ normative:
   RFC8446:
 
 informative:
-  I-D.ietf-dprive-padding-policy:
+  RFC8467:
   RFC2818:
   RFC5280:
   RFC5861:
@@ -528,7 +528,7 @@ active attacks that attempt to divert DNS traffic to rogue servers
 similar protections, while direct UDP and TCP based transports are
 vulnerable to this class of attack.
 An experimental effort to offer guidance on choosing the padding 
-length can be found in {{I-D.ietf-dprive-padding-policy}}.
+length can be found in {{RFC8467}}.
 
 Additionally, the use of the HTTPS default port 443 and the ability to
 mix DoH traffic with other HTTPS traffic on the same connection can
